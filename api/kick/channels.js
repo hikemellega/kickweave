@@ -1,6 +1,4 @@
 
-const crypto = require("crypto");
-
 module.exports = async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -21,50 +19,50 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const secret = process.env.KICK_SESSION_SECRET;
+  const {
+    KICK_CLIENT_ID,
+    KICK_CLIENT_SECRET
+  } = process.env;
 
-  if (!secret) {
+  if (!KICK_CLIENT_ID || !KICK_CLIENT_SECRET) {
     return res.status(500).json({
-      error: "Session configuration missing"
+      error: "Kick credentials not configured"
     });
   }
-
-  const session = (req.headers.cookie || "")
-    .split(";")
-    .map(item => item.trim())
-    .find(item => item.startsWith("kw_session="))
-    ?.slice("kw_session=".length);
-
-  if (!session) {
-    return res.status(401).json({
-      error: "Not authenticated"
-    });
-  }
-
-  let accessToken;
 
   try {
-    const { jwtDecrypt } = await import("jose");
+    const tokenResponse = await fetch(
+      "https://id.kick.com/oauth/token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/x-www-form-urlencoded",
+          Accept: "application/json"
+        },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: KICK_CLIENT_ID,
+          client_secret: KICK_CLIENT_SECRET
+        })
+      }
+    );
 
-    const key = crypto
-      .createHash("sha256")
-      .update(secret)
-      .digest();
-
-    const { payload } = await jwtDecrypt(session, key);
-
-    accessToken = payload.access_token;
-
-    if (typeof accessToken !== "string") {
-      throw new Error("Invalid token");
+    if (!tokenResponse.ok) {
+      return res.status(502).json({
+        error: "App token request failed",
+        status: tokenResponse.status
+      });
     }
-  } catch {
-    return res.status(401).json({
-      error: "Invalid session"
-    });
-  }
 
-  try {
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenData.access_token) {
+      return res.status(502).json({
+        error: "No app access token returned"
+      });
+    }
+
     const url = new URL(
       "https://api.kick.com/public/v1/channels"
     );
@@ -73,14 +71,14 @@ module.exports = async function handler(req, res) {
 
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${tokenData.access_token}`,
         Accept: "application/json"
       }
     });
 
     if (!response.ok) {
       return res.status(502).json({
-        error: "Kick API request failed",
+        error: "Kick channels request failed",
         status: response.status
       });
     }
