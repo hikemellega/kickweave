@@ -1,5 +1,8 @@
 {
   "name": "kickweave",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "jose": "^6.0.0"
+  }
 }
