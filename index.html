@@ -32,4 +32,40 @@ $('addForm').addEventListener('submit',e=>{e.preventDefault();let name=$('channe
 $('channels').addEventListener('click',e=>{let row=e.target.closest('.channel');if(!row)return;let name=row.dataset.channel;if(e.target.closest('.open-kick')){window.open('https://kick.com/'+encodeURIComponent(name),'_blank','noopener,noreferrer');return}if(e.target.closest('.remove')){channels=channels.filter(c=>c.name!==name);if(active===name)active='all';render();return}if(e.target.closest('.mute')){let c=channels.find(c=>c.name===name);c.muted=!c.muted;render();return}active=name;render()});
 $('activeTitle').title='Clique duas vezes no nome do canal para abrir o canal oficial na Kick';$('activeTitle').addEventListener('dblclick',()=>{if(active!=='all')window.open('https://kick.com/'+encodeURIComponent(active),'_blank','noopener,noreferrer')});$('allBtn').onclick=()=>{active='all';render()};$('searchInput').addEventListener('input',render);$('commandsToggle').onclick=()=>{hideCommands=!hideCommands;$('commandsToggle').classList.toggle('on',hideCommands);render()};$('scrollToggle').onclick=()=>{autoScroll=!autoScroll;$('scrollToggle').classList.toggle('on',autoScroll)};$('soloToggle').onclick=()=>{solo=!solo;$('soloToggle').classList.toggle('on',solo);render()};$('clearBtn').onclick=()=>{messages=[];render();toast('Feed limpo.')};$('sendForm').addEventListener('submit',e=>{e.preventDefault();let text=$('messageInput').value.trim();if(!text)return;let channel=active==='all'?(channels[0]?.name):active;if(!channel){toast('Adicione um canal primeiro.');return}messages.push({channel,user:'Você (demo)',text,time:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});$('messageInput').value='';render();toast('Mensagem adicionada somente à prévia.')});$('connectBtn').onclick=()=>window.open('https://kick.com','_blank','noopener,noreferrer');$('overlayBtn').onclick=()=>{document.body.classList.toggle('overlay-mode');toast('Prévia de overlay: use a janela do navegador como fonte no OBS.')};
 render();
+
+  
+<script>
+(async function verificarLoginKick() {
+  const botao = document.getElementById("connectBtn");
+  if (!botao) return;
+
+  botao.textContent = "Verificando Kick...";
+
+  try {
+    const resposta = await fetch("/api/auth/kick/me", {
+      credentials: "same-origin",
+      cache: "no-store"
+    });
+
+    const dados = await resposta.json();
+
+    if (resposta.ok && dados.authenticated === true) {
+      botao.textContent = "✓ Kick conectada";
+      botao.onclick = null;
+      botao.disabled = true;
+    } else {
+      botao.textContent = "Conectar Kick";
+      botao.onclick = () => {
+        window.location.href = "/api/auth/kick/login";
+      };
+    }
+  } catch {
+    botao.textContent = "Conectar Kick";
+    botao.onclick = () => {
+      window.location.href = "/api/auth/kick/login";
+    };
+  }
+})();
+</script>
+
 </script></body></html>
