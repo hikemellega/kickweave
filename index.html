@@ -66,6 +66,52 @@ render();
     };
   }
 })();
+</script>
+
+<script>
+async function atualizarStatusKick() {
+  const canais = document.querySelectorAll(
+    ".channel[data-channel]"
+  );
+
+  for (const canal of canais) {
+    const nome = canal.dataset.channel;
+
+    try {
+      const resposta = await fetch(
+        "/api/kick/channels?slug=" +
+        encodeURIComponent(nome)
+      );
+
+      if (!resposta.ok) continue;
+
+      const resultado = await resposta.json();
+      const dados = resultado.data?.[0];
+
+      if (!dados) continue;
+
+      const aoVivo = dados.stream?.is_live === true;
+
+      canal.title = aoVivo
+        ? "AO VIVO na Kick"
+        : "Canal offline";
+
+      canal.style.borderLeft = aoVivo
+        ? "3px solid #53fc18"
+        : "";
+    } catch (erro) {
+      console.error(
+        "Erro ao consultar canal:",
+        nome,
+        erro
+      );
+    }
+  }
+}
+
+atualizarStatusKick();
+setInterval(atualizarStatusKick, 60000);
+
 
 
 </script></body></html>
