@@ -32,7 +32,7 @@ module.exports = function handler(req, res) {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: "user:read",
+   scope: "user:read channel:read",
     state,
     code_challenge: challenge,
     code_challenge_method: "S256"
